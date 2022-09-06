@@ -6,6 +6,12 @@ class Student {
     this.enrolled = enrolled;
   }
 
+  notify(message, callback) {
+    console.log(message);
+
+    callback();
+  }
+
   get status() {
     return this.name + ' is enrolled:' + this.enrolled;
   }
@@ -150,3 +156,42 @@ function addToCourseArray(courses, course) {
 addToCourseArray(courses, course1);
 addToCourseArray(courses, course2);
 addToCourseArray(courses, course3);
+
+// enrolled --> checkSpaceSlow --> enroll & notify --> increment --> print a message
+// long story short, you cannot have multiple callbacks
+
+function slowIncrement(delay, course, callback) {
+  setTimeout(() => {
+    course.enrolled++;
+    if (course.capacity === course.enrolled)
+      callback(course.name + ' is full!', null);
+    else
+      callback(
+        null,
+        course.name + ' has ' + (course.capacity - course.enrolled) + ' seats.'
+      );
+  }, delay);
+}
+
+//callback hell example
+function slowAddStudent(delay, student, course, callback) {
+  student.isEnrolledSlow(delay, (error, student) => {
+    if (error) callback(error);
+    else if (!course) callback('Course is null!');
+    else
+      course.checkSpaceSlow(delay, (error, course) => {
+        if (error) callback(error);
+        else student.enrolled = true;
+        student.notify('You are enrolled in ' + course.name, () => {
+          slowIncrement(delay, course, (full, available) => {
+            if (full) callback(full);
+            else callback(available);
+          });
+        });
+      });
+  });
+}
+
+slowAddStudent(2000, students[0], courses[1], (message) =>
+  console.log(message)
+);
